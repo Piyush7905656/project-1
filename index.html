@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ResearchMind AI – Intelligent Research Companion</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <!-- App Styles -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════ NAVBAR ══════════════════════════════════════ -->
+<nav class="navbar navbar-expand-lg navbar-dark" style="background:#0d0d1a; border-bottom:1px solid #2d2d4e; position:sticky; top:0; z-index:1000;">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center gap-3" href="#">
+      <div style="width:38px;height:38px;background:linear-gradient(135deg,#0f62fe,#6929c4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🧠</div>
+      <div>
+        <div class="navbar-brand-title">ResearchMind AI</div>
+        <div class="navbar-brand-sub">Intelligent Research Companion</div>
+      </div>
+    </a>
+    <div class="d-flex align-items-center gap-3 ms-auto">
+      <span class="ibm-badge">IBM watsonx.ai</span>
+      <span class="ibm-badge" style="background:#6929c4;">Granite Models</span>
+      <span id="modeLabel" class="badge bg-warning text-dark" style="font-size:.7rem;">DEMO MODE</span>
+      <button class="btn btn-sm btn-outline-secondary" onclick="clearSession()">
+        <i class="bi bi-trash3"></i> Clear
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════ HERO BANNER ════════════════════════════════ -->
+<div style="background:linear-gradient(135deg,#0a0a1e 0%,#0d1635 50%,#0a0a1e 100%);border-bottom:1px solid #1e2a4a;padding:2rem 0;">
+  <div class="container-fluid px-4">
+    <div class="row align-items-center">
+      <div class="col-lg-7">
+        <h1 class="fw-bold mb-2" style="font-size:1.9rem;">
+          Agentic AI Research Intelligence
+          <span style="color:#0f62fe;">Powered by IBM Granite</span>
+        </h1>
+        <p class="text-secondary mb-3" style="font-size:.95rem;">
+          Five specialised AI agents collaborate to retrieve literature, synthesise reviews,
+          identify research gaps, forecast trends, and generate your personalised research plan —
+          all orchestrated by a central IBM Granite reasoning engine.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge" style="background:#1e3a5f;color:#93c5fd;font-size:.75rem;"><i class="bi bi-cpu me-1"></i>IBM Granite 3.3 8B Instruct</span>
+          <span class="badge" style="background:#2d1b4e;color:#c4b5fd;font-size:.75rem;"><i class="bi bi-diagram-3 me-1"></i>5-Agent Agentic Architecture</span>
+          <span class="badge" style="background:#1a2e1a;color:#86efac;font-size:.75rem;"><i class="bi bi-database me-1"></i>Lightweight RAG System</span>
+          <span class="badge" style="background:#2e1a1a;color:#fca5a5;font-size:.75rem;"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / TXT Upload</span>
+        </div>
+      </div>
+      <div class="col-lg-5 mt-4 mt-lg-0">
+        <!-- System status card -->
+        <div class="card-dark p-3" id="statusCard">
+          <div class="section-header mb-2">System Status</div>
+          <div id="statusContent" class="text-secondary" style="font-size:.82rem;">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MAIN LAYOUT ════════════════════════════════ -->
+<div class="container-fluid px-4 py-4">
+  <div class="row g-4">
+
+    <!-- ── LEFT SIDEBAR ─────────────────────────────────────────────────── -->
+    <div class="col-lg-3">
+      <div class="sidebar">
+
+        <!-- Upload Panel -->
+        <div class="card-dark mb-4">
+          <div class="card-header">
+            <span class="fw-semibold"><i class="bi bi-cloud-upload me-2"></i>Knowledge Upload</span>
+          </div>
+          <div class="p-3">
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+              <i class="bi bi-file-earmark-richtext" style="font-size:2rem;color:#4a5568;"></i>
+              <p class="mt-2 mb-1 text-secondary" style="font-size:.85rem;">Drop PDF or TXT here</p>
+              <p style="font-size:.75rem;color:#4a5568;">Supports research papers, journals, whitepapers</p>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf,.txt" style="display:none" onchange="uploadFile(this)"/>
+            <div id="uploadStatus" class="mt-2" style="font-size:.8rem;"></div>
+            <div id="kbStats" class="mt-2 text-secondary" style="font-size:.78rem;"></div>
+          </div>
+        </div>
+
+        <!-- Agent Workflow Panel -->
+        <div class="card-dark mb-4">
+          <div class="card-header">
+            <span class="fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Agent Workflow</span>
+          </div>
+          <div class="p-3" id="workflowPanel">
+            <div class="flow-step" id="step-orchestrator">
+              <div class="step-num">★</div>
+              <div>
+                <div class="fw-semibold" style="font-size:.8rem;">Master Orchestrator</div>
+                <div style="font-size:.7rem;color:#64748b;">Coordinates all agents</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step-0">
+              <div class="step-num" style="color:#3b82f6;">1</div>
+              <div>
+                <div class="fw-semibold" style="font-size:.8rem;">🔍 Research Retrieval</div>
+                <div style="font-size:.7rem;color:#64748b;">Extract &amp; organise knowledge</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step-1">
+              <div class="step-num" style="color:#8b5cf6;">2</div>
+              <div>
+                <div class="fw-semibold" style="font-size:.8rem;">📚 Literature Review</div>
+                <div style="font-size:.7rem;color:#64748b;">Synthesise &amp; compare</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step-2">
+              <div class="step-num" style="color:#ef4444;">3</div>
+              <div>
+                <div class="fw-semibold" style="font-size:.8rem;">🔬 Gap Analysis</div>
+                <div style="font-size:.7rem;color:#64748b;">Identify missing areas</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step-3">
+              <div class="step-num" style="color:#f59e0b;">4</div>
+              <div>
+                <div class="fw-semibold" style="font-size:.8rem;">📈 Trend Forecasting</div>
+                <div style="font-size:.7rem;color:#64748b;">Predict future directions</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step-4">
+              <div class="step-num" style="color:#10b981;">5</div>
+              <div>
+                <div class="fw-semibold" style="font-size:.8rem;">🎯 Research Advisor</div>
+                <div style="font-size:.7rem;color:#64748b;">Strategic guidance</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick examples -->
+        <div class="card-dark">
+          <div class="card-header">
+            <span class="fw-semibold"><i class="bi bi-lightbulb me-2"></i>Example Queries</span>
+          </div>
+          <div class="p-3">
+            <div class="d-flex flex-column gap-2">
+              <button class="btn btn-sm text-start example-btn" style="color:#93c5fd;" onclick="setQuery('Transformer models for natural language processing')">
+                Transformer models for NLP
+              </button>
+              <button class="btn btn-sm text-start example-btn" style="color:#c4b5fd;" onclick="setQuery('Federated learning for privacy-preserving AI')">
+                Federated learning &amp; privacy
+              </button>
+              <button class="btn btn-sm text-start example-btn" style="color:#86efac;" onclick="setQuery('AI-powered drug discovery and healthcare diagnostics')">
+                AI in drug discovery
+              </button>
+              <button class="btn btn-sm text-start example-btn" style="color:#fcd34d;" onclick="setQuery('Quantum machine learning algorithms and applications')">
+                Quantum machine learning
+              </button>
+              <button class="btn btn-sm text-start example-btn" style="color:#fca5a5;" onclick="setQuery('Climate change modelling using deep learning')">
+                Climate change &amp; deep learning
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── MAIN CONTENT ──────────────────────────────────────────────────── -->
+    <div class="col-lg-9">
+
+      <!-- Query Input Card -->
+      <div class="card-dark mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span class="fw-semibold"><i class="bi bi-search me-2"></i>Research Query</span>
+          <span style="font-size:.75rem;color:#64748b;">Powered by IBM Granite · Multi-Agent Orchestration</span>
+        </div>
+        <div class="p-3">
+          <textarea id="queryInput" class="query-input mb-3" rows="3"
+            placeholder="Enter your research question, topic, or abstract…&#10;e.g. 'What are the latest advances in explainable AI for medical imaging?'"></textarea>
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <button class="btn btn-research" onclick="runResearch()" id="runBtn">
+              <i class="bi bi-cpu me-2"></i>Launch Research Agents
+            </button>
+            <div id="loadingIndicator" style="display:none;" class="d-flex align-items-center gap-2 text-secondary">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+              <span id="loadingText" style="font-size:.85rem;">Initialising agents…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RESULTS AREA (hidden until research runs) ─────────────────── -->
+      <div id="resultsArea" style="display:none;">
+
+        <!-- Tabs navigation -->
+        <ul class="nav nav-tabs mb-4" style="border-bottom:1px solid #2d2d4e;" id="resultTabs">
+          <li class="nav-item">
+            <button class="nav-link active" data-tab="agents" onclick="showTab('agents', this)"
+              style="background:transparent;color:#93c5fd;border:none;border-bottom:2px solid #0f62fe;padding:.6rem 1rem;font-size:.88rem;">
+              <i class="bi bi-diagram-3 me-1"></i>Agent Outputs
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-tab="report" onclick="showTab('report', this)"
+              style="background:transparent;color:#64748b;border:none;border-bottom:2px solid transparent;padding:.6rem 1rem;font-size:.88rem;">
+              <i class="bi bi-file-text me-1"></i>Final Report
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-tab="graph" onclick="showTab('graph', this)"
+              style="background:transparent;color:#64748b;border:none;border-bottom:2px solid transparent;padding:.6rem 1rem;font-size:.88rem;">
+              <i class="bi bi-share me-1"></i>Knowledge Graph
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-tab="dashboard" onclick="showTab('dashboard', this)"
+              style="background:transparent;color:#64748b;border:none;border-bottom:2px solid transparent;padding:.6rem 1rem;font-size:.88rem;">
+              <i class="bi bi-grid-3x3-gap me-1"></i>Dashboard
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab: Agent Outputs -->
+        <div id="tab-agents">
+          <div class="section-header">Agent Collaboration Trace — showing why each agent was activated</div>
+          <div id="agentOutputs"></div>
+        </div>
+
+        <!-- Tab: Final Report -->
+        <div id="tab-report" style="display:none;">
+          <div class="section-header">Research Intelligence Report — compiled by the Master Orchestrator</div>
+          <div class="final-report" id="finalReportContent"></div>
+        </div>
+
+        <!-- Tab: Knowledge Graph -->
+        <div id="tab-graph" style="display:none;">
+          <div class="section-header mb-3">Concept Knowledge Graph — relationships between topics, agents, and concepts</div>
+          <svg id="kgCanvas"></svg>
+          <div class="mt-2 text-secondary" style="font-size:.75rem;">
+            <span style="color:#0f62fe;">●</span> Query &nbsp;
+            <span style="color:#6929c4;">●</span> Agents &nbsp;
+            <span style="color:#10b981;">●</span> Concepts
+          </div>
+        </div>
+
+        <!-- Tab: Dashboard -->
+        <div id="tab-dashboard" style="display:none;">
+          <div class="section-header">Research Intelligence Dashboard</div>
+          <div class="row g-3" id="dashboardCards"></div>
+        </div>
+
+      </div><!-- /resultsArea -->
+
+    </div><!-- /main col -->
+  </div><!-- /row -->
+</div><!-- /container -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  ResearchMind AI – Frontend JavaScript
+// ═══════════════════════════════════════════════════════════════════════════
+
+let currentResults = null;
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadStatus();
+  initDragDrop();
+});
+
+// ── System Status ────────────────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    const res  = await fetch('/api/status');
+    const data = await res.json();
+    const live = data.mode.startsWith('LIVE');
+    document.getElementById('modeLabel').textContent = data.mode;
+    document.getElementById('modeLabel').className   = live
+      ? 'badge bg-success' : 'badge bg-warning text-dark';
+    document.getElementById('statusContent').innerHTML = `
+      <div class="d-flex flex-column gap-1">
+        <div class="d-flex justify-content-between">
+          <span>IBM watsonx.ai SDK</span>
+          <span class="${data.watsonx_available?'text-success':'text-danger'}">${data.watsonx_available?'✓ Installed':'✗ Missing'}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Granite Credentials</span>
+          <span class="${data.watsonx_configured?'text-success':'text-warning'}">${data.watsonx_configured?'✓ Configured':'⚠ Not Set'}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>RAG System (TF-IDF)</span>
+          <span class="${data.rag_available?'text-success':'text-warning'}">${data.rag_available?'✓ Ready':'⚠ Disabled'}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>PDF Extraction</span>
+          <span class="${data.pdf_available?'text-success':'text-warning'}">${data.pdf_available?'✓ Ready':'⚠ Disabled'}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Primary Model</span>
+          <span style="color:#93c5fd;font-size:.75rem;">${data.primary_model}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Knowledge Chunks</span>
+          <span style="color:#86efac;">${data.knowledge_base_chunks}</span>
+        </div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('statusContent').textContent = 'Status unavailable';
+  }
+}
+
+// ── File Upload ───────────────────────────────────────────────────────────────
+function initDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFileObj(file);
+  });
+}
+
+function uploadFile(input) {
+  if (input.files[0]) uploadFileObj(input.files[0]);
+}
+
+async function uploadFileObj(file) {
+  const status = document.getElementById('uploadStatus');
+  status.innerHTML = `<span class="text-warning spinner-pulse"><i class="bi bi-arrow-repeat me-1"></i>Uploading &amp; indexing…</span>`;
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res  = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      status.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.filename} — ${data.chunks_added} chunks indexed</span>`;
+      document.getElementById('kbStats').innerHTML =
+        `<i class="bi bi-database me-1"></i>Knowledge base: <strong style="color:#86efac;">${data.total_chunks}</strong> chunks`;
+      loadStatus();
+      showToast(`✓ ${data.filename} added to knowledge base (${data.chunks_added} chunks)`, 'success');
+    } else {
+      status.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.error}</span>`;
+    }
+  } catch(e) {
+    status.innerHTML = `<span class="text-danger">Upload failed: ${e.message}</span>`;
+  }
+}
+
+// ── Example Query Setter ──────────────────────────────────────────────────────
+function setQuery(q) {
+  document.getElementById('queryInput').value = q;
+  document.getElementById('queryInput').focus();
+}
+
+// ── Run Research (Main Action) ────────────────────────────────────────────────
+async function runResearch() {
+  const query = document.getElementById('queryInput').value.trim();
+  if (!query) { showToast('Please enter a research query.', 'warning'); return; }
+
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('loadingIndicator').style.display = 'flex';
+  document.getElementById('resultsArea').style.display = 'none';
+  resetWorkflowSteps();
+  activateWorkflowStep('orchestrator');
+
+  const loadingTexts = [
+    'Initialising Master Orchestrator…',
+    'Agent 1: Retrieving research knowledge…',
+    'Agent 2: Generating literature review…',
+    'Agent 3: Analysing research gaps…',
+    'Agent 4: Forecasting emerging trends…',
+    'Agent 5: Building research plan…',
+    'Compiling final report…',
+  ];
+  let textIdx = 0;
+  const textTimer = setInterval(() => {
+    document.getElementById('loadingText').textContent = loadingTexts[Math.min(textIdx++, loadingTexts.length-1)];
+    if (textIdx <= 5) activateWorkflowStep(textIdx - 1);
+  }, 900);
+
+  try {
+    const res  = await fetch('/api/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const data = await res.json();
+    clearInterval(textTimer);
+
+    if (data.success) {
+      currentResults = data.results;
+      renderResults(data.results);
+      markAllWorkflowDone();
+      showToast('Research complete — all agents finished!', 'success');
+    } else {
+      showToast('Error: ' + data.error, 'danger');
+      resetWorkflowSteps();
+    }
+  } catch(e) {
+    clearInterval(textTimer);
+    showToast('Request failed: ' + e.message, 'danger');
+    resetWorkflowSteps();
+  } finally {
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('loadingIndicator').style.display = 'none';
+  }
+}
+
+// ── Render All Results ────────────────────────────────────────────────────────
+function renderResults(results) {
+  document.getElementById('resultsArea').style.display = 'block';
+  showTab('agents', document.querySelector('[data-tab="agents"]'));
+
+  const container = document.getElementById('agentOutputs');
+  container.innerHTML = '';
+  results.agents.forEach((agent, i) => {
+    const card = document.createElement('div');
+    card.className = `agent-card agent-${i+1}`;
+    card.innerHTML = `
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <div class="agent-icon" style="background:${agent.color}22;">
+          <span>${agent.icon}</span>
+        </div>
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="fw-bold" style="color:${agent.color};">${agent.agent}</span>
+            <span class="badge" style="background:${agent.color}33;color:${agent.color};font-size:.65rem;">Agent ${i+1}</span>
+            ${agent.context_used ? '<span class="badge bg-success bg-opacity-25 text-success" style="font-size:.65rem;"><i class="bi bi-database me-1"></i>RAG Context Used</span>' : ''}
+            <span class="ms-auto text-secondary" style="font-size:.72rem;"><i class="bi bi-clock me-1"></i>${agent.timestamp}</span>
+          </div>
+          <div class="text-secondary mt-1" style="font-size:.78rem;">
+            <i class="bi bi-info-circle me-1"></i>${agent.why_activated}
+          </div>
+        </div>
+      </div>
+      <div class="agent-output-body">${escapeAndFormat(agent.output)}</div>`;
+    container.appendChild(card);
+  });
+
+  document.getElementById('finalReportContent').textContent = results.final_report;
+  renderKnowledgeGraph(results.knowledge_graph);
+  renderDashboard(results);
+  loadStatus();
+}
+
+// ── Knowledge Graph SVG Renderer ──────────────────────────────────────────────
+function renderKnowledgeGraph(graph) {
+  const svg  = document.getElementById('kgCanvas');
+  const W    = svg.getBoundingClientRect().width || 800;
+  const H    = 380;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+
+  if (!graph || !graph.nodes || graph.nodes.length === 0) {
+    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#4a5568" font-size="14">No graph data</text>`;
+    return;
+  }
+
+  const nodes = graph.nodes;
+  const edges = graph.edges;
+  const cx = W / 2, cy = H / 2;
+  const nodePositions = {};
+
+  nodes.forEach((node) => {
+    if (node.type === 'query') {
+      nodePositions[node.id] = { x: cx, y: cy };
+    } else if (node.type === 'agent') {
+      const agentNodes = nodes.filter(n => n.type === 'agent');
+      const idx = agentNodes.findIndex(n => n.id === node.id);
+      const angle = (2 * Math.PI * idx / agentNodes.length) - Math.PI / 2;
+      nodePositions[node.id] = { x: cx + 140 * Math.cos(angle), y: cy + 110 * Math.sin(angle) };
+    } else {
+      const conceptNodes = nodes.filter(n => n.type === 'concept');
+      const idx = conceptNodes.findIndex(n => n.id === node.id);
+      const angle = (2 * Math.PI * idx / conceptNodes.length) - Math.PI / 4;
+      nodePositions[node.id] = { x: cx + 230 * Math.cos(angle), y: cy + 160 * Math.sin(angle) };
+    }
+  });
+
+  edges.forEach(edge => {
+    const s = nodePositions[edge.source];
+    const t = nodePositions[edge.target];
+    if (!s || !t) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', s.x); line.setAttribute('y1', s.y);
+    line.setAttribute('x2', t.x); line.setAttribute('y2', t.y);
+    line.setAttribute('stroke', '#2d2d4e');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '4,3');
+    svg.appendChild(line);
+  });
+
+  nodes.forEach(node => {
+    const pos = nodePositions[node.id];
+    if (!pos) return;
+    const r    = node.size || 14;
+    const fill = node.type === 'query' ? '#0f62fe' : node.type === 'agent' ? (node.color || '#6929c4') : '#10b981';
+    const g    = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', fill + '33');
+    circle.setAttribute('stroke', fill);
+    circle.setAttribute('stroke-width', '2');
+    g.appendChild(circle);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', pos.x);
+    text.setAttribute('y', pos.y + r + 12);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('fill', '#94a3b8');
+    text.setAttribute('font-size', '10');
+    text.textContent = node.label.length > 18 ? node.label.substring(0,16)+'…' : node.label;
+    g.appendChild(text);
+
+    svg.appendChild(g);
+  });
+}
+
+// ── Dashboard Cards ───────────────────────────────────────────────────────────
+function renderDashboard(results) {
+  const container = document.getElementById('dashboardCards');
+  const icons  = ['🔍','📚','🔬','📈','🎯'];
+  const colors  = ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981'];
+  const labels = ['Literature Summary','Review Synthesis','Gap Analysis','Trend Forecast','Research Plan'];
+
+  container.innerHTML = results.agents.map((agent, i) => `
+    <div class="col-md-6 col-xl-4">
+      <div class="card-dark h-100">
+        <div class="card-header d-flex align-items-center gap-2">
+          <span style="font-size:1.1rem;">${icons[i]}</span>
+          <span class="fw-semibold" style="font-size:.85rem;">${labels[i]}</span>
+          <span class="ms-auto badge" style="background:${colors[i]}22;color:${colors[i]};font-size:.65rem;">Agent ${i+1}</span>
+        </div>
+        <div class="p-3">
+          <div style="font-size:.8rem;color:#94a3b8;line-height:1.6;max-height:180px;overflow:hidden;">
+            ${escapeAndFormat(agent.output.substring(0, 400))}${agent.output.length > 400 ? '…' : ''}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  container.innerHTML += `
+    <div class="col-12">
+      <div class="card-dark">
+        <div class="card-header d-flex align-items-center gap-2">
+          <span style="font-size:1.1rem;">🏆</span>
+          <span class="fw-semibold">Research Intelligence Report</span>
+          <span class="ms-auto badge" style="background:#0f62fe22;color:#93c5fd;font-size:.65rem;">Master Orchestrator</span>
+        </div>
+        <div class="p-3">
+          <div style="font-size:.82rem;color:#94a3b8;line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto;">
+            ${escapeAndFormat(results.final_report.substring(0, 800))}${results.final_report.length > 800 ? '\n\n[See Full Report tab for complete output]' : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Tab Switcher ──────────────────────────────────────────────────────────────
+function showTab(tabName, btn) {
+  ['agents','report','graph','dashboard'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tabName ? 'block' : 'none';
+  });
+  document.querySelectorAll('#resultTabs .nav-link').forEach(b => {
+    b.style.color = '#64748b';
+    b.style.borderBottom = '2px solid transparent';
+  });
+  if (btn) {
+    btn.style.color = '#93c5fd';
+    btn.style.borderBottom = '2px solid #0f62fe';
+  }
+  if (tabName === 'graph' && currentResults) {
+    setTimeout(() => renderKnowledgeGraph(currentResults.knowledge_graph), 50);
+  }
+}
+
+// ── Workflow Step Animations ──────────────────────────────────────────────────
+function resetWorkflowSteps() {
+  document.querySelectorAll('.flow-step').forEach(el => el.classList.remove('active','done'));
+}
+function activateWorkflowStep(idx) {
+  if (idx === 'orchestrator') {
+    document.getElementById('step-orchestrator').classList.add('active');
+    return;
+  }
+  const el = document.getElementById('step-' + idx);
+  if (el) {
+    if (idx > 0) {
+      const prev = document.getElementById('step-' + (idx-1));
+      if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+    }
+    el.classList.add('active');
+  }
+}
+function markAllWorkflowDone() {
+  document.querySelectorAll('.flow-step').forEach(el => {
+    el.classList.remove('active');
+    el.classList.add('done');
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escapeAndFormat(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#e2e8f0;">$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function showToast(message, type = 'info') {
+  const colors = { success:'#10b981', danger:'#ef4444', warning:'#f59e0b', info:'#3b82f6' };
+  const el = document.createElement('div');
+  el.style.cssText = `background:#12121f;border:1px solid ${colors[type]||'#2d2d4e'};border-radius:8px;padding:.75rem 1.1rem;color:#e2e8f0;font-size:.85rem;margin-top:.5rem;min-width:260px;box-shadow:0 4px 20px rgba(0,0,0,.5);`;
+  el.innerHTML = `<span style="color:${colors[type]};">●</span> ${message}`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+async function clearSession() {
+  await fetch('/api/clear', { method: 'POST' });
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('uploadStatus').innerHTML = '';
+  document.getElementById('kbStats').innerHTML = '';
+  document.getElementById('queryInput').value = '';
+  resetWorkflowSteps();
+  currentResults = null;
+  loadStatus();
+  showToast('Session cleared — knowledge base reset.', 'info');
+}
+</script>
+</body>
+</html>

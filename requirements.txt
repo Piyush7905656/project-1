@@ -1,0 +1,18 @@
+# ─── ResearchMind AI — Python Dependencies ───────────────────────────────────
+# Install all with:  pip install -r requirements.txt
+
+# Web framework
+Flask>=3.0.0
+
+# IBM watsonx.ai SDK (Granite model inference)
+ibm-watsonx-ai>=1.0.0
+
+# PDF text extraction
+PyPDF2>=3.0.0
+
+# Lightweight RAG — TF-IDF vectorisation & cosine similarity
+scikit-learn>=1.4.0
+numpy>=1.26.0
+
+# Load credentials from .env file
+python-dotenv>=1.0.0
